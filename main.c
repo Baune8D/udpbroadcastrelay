@@ -64,6 +64,7 @@ GNU General Public License for more details.
 #include <strings.h>
 #include <netdb.h>
 #include <fcntl.h>
+#include <stdbool.h>
 
 static int debug = 0;
 static int exit_ok = 0;
@@ -76,6 +77,7 @@ struct Iface {
     struct in_addr ifaddr;
     int ifindex;
     int raw_socket;
+    bool skip;
 };
 static struct Iface ifs[MAXIFS];
 static int maxifs = 0;
@@ -1459,6 +1461,8 @@ int main(int argc,char **argv) {
     int multicastAddrsNum = 0;
     char* interfaceNames[MAXIFS];
     int interfaceNamesNum = 0;
+    char* skipInterfaceNames[MAXIFS];
+    int skipInterfaceNamesNum = 0;
     in_addr_t spoof_addr = 0;
 
     /* Address broadcast packet was sent from */
@@ -1541,6 +1545,15 @@ srandom(time(NULL) & getpid());
             interfaceNames[interfaceNamesNum] = argv[i];
             interfaceNamesNum++;
         }
+        else if (strcmp(argv[i],"--skip") == 0) {
+            if (skipInterfaceNamesNum >= MAXIFS) {
+                fprintf(stderr, "More than %i skip interfaces specified.\n", MAXIFS);
+                exit(1);
+            }
+            i++;
+            skipInterfaceNames[skipInterfaceNamesNum] = argv[i];
+            skipInterfaceNamesNum++;
+        }
         else if (strcmp(argv[i],"--pid") == 0) {
             i++;
             usr_pid = argv[i];
@@ -1609,6 +1622,12 @@ srandom(time(NULL) & getpid());
     /* For each interface on the command line */
     for (int i = 0; i < interfaceNamesNum; i++) {
         struct Iface* iface = &ifs[maxifs];
+
+        for (int j = 0; j < skipInterfaceNamesNum; j++) {
+            if (strcmp(interfaceNames[i], skipInterfaceNames[j]) == 0) {
+                iface->skip = true;
+            }
+        } 
 
         struct ifreq basereq;
         strncpy(basereq.ifr_name,interfaceNames[i],IFNAMSIZ);
@@ -1982,6 +2001,11 @@ srandom(time(NULL) & getpid());
 
         if (!fromIface) {
             DPRINT("Not from managed iface\n\n");
+            continue;
+        }
+
+        if (fromIface->skip) {
+            DPRINT("Interface skipped with --skip\n\n");
             continue;
         }
 
