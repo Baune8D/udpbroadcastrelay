@@ -2027,7 +2027,6 @@ srandom(time(NULL) & getpid());
             }
 
             if (iface->skip) {
-                DPRINT("Skipped package to: %i\n\n", iface->dstaddr);
                 continue;
             }
 
