@@ -2004,11 +2004,6 @@ srandom(time(NULL) & getpid());
             continue;
         }
 
-        if (fromIface->skip) {
-            DPRINT("Interface skipped with --skip\n\n");
-            continue;
-        }
-
         // Find a M-SEARCH proxy port to receive replies to the multicast request
         if (spoof_addr == inet_addr("1.1.1.3")) {
             proxyport= port;
@@ -2028,6 +2023,11 @@ srandom(time(NULL) & getpid());
 
             /* no bounces, please */
             if (iface == fromIface) {
+                continue;
+            }
+
+            if (iface->skip) {
+                DPRINT("Skipped package to: %i\n\n", iface->dstaddr);
                 continue;
             }
 
